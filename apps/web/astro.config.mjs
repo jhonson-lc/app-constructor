@@ -8,5 +8,6 @@ export default defineConfig({
   output:"server",
   vite: {
     plugins: [tailwindcss()],
-  }
+  },
+  outDir: "./dist"
 });
