@@ -1,8 +1,8 @@
 ---
-import Layout from "../../layouts/Layout.astro";
+import LayoutLogin from "../../layouts/LayoutLogin.astro";
 ---
 
-<Layout
+<LayoutLogin
   title="Iniciar Sesión"
   description="Página de inicio de sesión para usuarios."
 >
@@ -66,11 +66,11 @@ import Layout from "../../layouts/Layout.astro";
               </label>
             </div>
 
-            <div class="text-sm">
+            <!-- <div class="text-sm">
               <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
                 ¿Olvidaste tu contraseña?
               </a>
-            </div>
+            </div> -->
           </div>
 
           <button
@@ -157,32 +157,15 @@ import Layout from "../../layouts/Layout.astro";
               for="username"
               class="block text-sm font-medium text-gray-700"
             >
-              Nombre de usuario
+              Correo electrónico
             </label>
             <input
               id="username"
               name="username"
-              type="text"
-              required
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="juanperez"
-            />
-          </div>
-
-          <div>
-            <label
-              for="register-email"
-              class="block text-sm font-medium text-gray-700"
-            >
-              Correo electrónico
-            </label>
-            <input
-              id="register-email"
-              name="email"
               type="email"
               required
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="juan@email.com"
+              placeholder="juanperez@email.com"
             />
           </div>
 
@@ -270,31 +253,24 @@ import Layout from "../../layouts/Layout.astro";
       </div>
     </div>
   </div>
-</Layout>
+</LayoutLogin>
 
 <script>
-  // API Configuration
-  const API_BASE_URL = "http://localhost:8081/api/auth";
+  import { actions } from "astro:actions";
+  import { navigate } from "astro:transitions/client";
+  import { $ } from "../../utils/dom-selector";
 
-  // DOM Elements
-  const loginForm = document.getElementById("login-form") as HTMLElement;
-  const registerForm = document.getElementById("register-form") as HTMLElement;
-  const showRegisterBtn = document.getElementById(
-    "show-register"
-  ) as HTMLElement;
-  const showLoginBtn = document.getElementById("show-login") as HTMLElement;
-  const loginFormElement = document.getElementById("loginForm") as HTMLElement;
-  const registerFormElement = document.getElementById(
-    "registerForm"
-  ) as HTMLElement;
-  const loginMessage = document.getElementById("login-message") as HTMLElement;
-  const registerMessage = document.getElementById(
-    "register-message"
-  ) as HTMLElement;
-  const loginBtn = document.getElementById("login-btn") as HTMLElement;
-  const registerBtn = document.getElementById("register-btn") as HTMLElement;
+  const loginForm = $("#login-form") as HTMLElement;
+  const registerForm = $("#register-form") as HTMLElement;
+  const showRegisterBtn = $("#show-register") as HTMLElement;
+  const showLoginBtn = $("#show-login") as HTMLElement;
+  const loginFormElement = $("#loginForm") as HTMLFormElement;
+  const registerFormElement = $("#registerForm") as HTMLFormElement;
+  const loginMessage = $("#login-message") as HTMLElement;
+  const registerMessage = $("#register-message") as HTMLElement;
+  const loginBtn = $("#login-btn") as HTMLButtonElement;
+  const registerBtn = $("#register-btn") as HTMLButtonElement;
 
-  // Form Toggle Functions
   showRegisterBtn.addEventListener("click", () => {
     loginForm.classList.add("hidden");
     registerForm.classList.remove("hidden");
@@ -307,10 +283,15 @@ import Layout from "../../layouts/Layout.astro";
     clearMessages();
   });
 
-  // Message Functions
-  function showMessage(messageElement, text, isError = false) {
-    const messageText = messageElement.querySelector("p");
-    const messageContainer = messageElement.querySelector("div > div");
+  function showMessage(
+    messageElement: HTMLElement,
+    text: string,
+    isError: boolean
+  ) {
+    const messageText = $("p", messageElement) as HTMLElement;
+    const messageContainer = messageElement.querySelector(
+      "div > div"
+    ) as HTMLElement;
 
     messageText.textContent = text;
     messageContainer.className = `rounded-md p-4 ${isError ? "bg-red-50" : "bg-green-50"}`;
@@ -323,164 +304,79 @@ import Layout from "../../layouts/Layout.astro";
     registerMessage.classList.add("hidden");
   }
 
-  // API Functions
-  async function makeRequest(url, data) {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+  loginFormElement.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-      const result = await response.json();
-
-      return {
-        success: response.ok,
-        data: result,
-        status: response.status,
-      };
-    } catch (error) {
-      console.error("Request error:", error);
-      return {
-        success: false,
-        data: {
-          message:
-            "Error de conexión. Verifica que el servidor esté funcionando.",
-        },
-        status: 0,
-      };
-    }
-  }
-
-  // Login Handler
-  loginFormElement.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(e.target);
-    const loginData = {
-      username: formData.get("username"),
-      password: formData.get("password"),
-    };
-
+    const formData = new FormData(loginFormElement);
     clearMessages();
-    loginBtn.disabled = true;
     loginBtn.textContent = "Iniciando sesión...";
-
-    console.log({ loginData });
+    loginBtn.disabled = true;
 
     try {
-      const result = await makeRequest(`${API_BASE_URL}/login`, loginData);
+      const { data, error } = await actions.login(formData);
 
-      if (result.success) {
+      if (!error && data) {
         showMessage(
           loginMessage,
           "Inicio de sesión exitoso. Redirigiendo...",
           false
         );
-
-        // Store token if provided
-        if (result.data.token) {
-          localStorage.setItem("authToken", result.data.token);
-        }
-
-        // Store user data if provided
-        if (result.data.user) {
-          localStorage.setItem("userData", JSON.stringify(result.data.user));
-        }
-
-        // Redirect after success (customize as needed)
-        setTimeout(() => {
-          window.location.href = "/dashboard"; // Change to your desired redirect
-        }, 1500);
+        navigate("/");
       } else {
-        const errorMessage = result.data.message || "Credenciales inválidas";
+        const errorMessage = error?.message || "Credenciales inválidas";
         showMessage(loginMessage, errorMessage, true);
       }
-    } catch (error) {
+    } catch (err) {
       showMessage(loginMessage, "Error inesperado. Inténtalo de nuevo.", true);
     } finally {
-      loginBtn.disabled = false;
       loginBtn.textContent = "Iniciar Sesión";
+      loginBtn.disabled = false;
     }
   });
 
-  // Register Handler
-  registerFormElement.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  registerFormElement.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-    const formData = new FormData(e.target);
+    const formData = new FormData(registerFormElement);
     const password = formData.get("password");
     const confirmPassword = formData.get("confirmPassword");
 
-    // Password validation
     if (password !== confirmPassword) {
       showMessage(registerMessage, "Las contraseñas no coinciden", true);
       return;
     }
 
-    const registerData = {
-      firstname: formData.get("firstname"),
-      lastname: formData.get("lastname"),
-      username: formData.get("username"),
-      email: formData.get("email"),
-      password: password,
-    };
-
     clearMessages();
-    registerBtn.disabled = true;
     registerBtn.textContent = "Creando cuenta...";
+    registerBtn.disabled = true;
 
     try {
-      const result = await makeRequest(
-        `${API_BASE_URL}/register`,
-        registerData
-      );
+      const { data, error } = await actions.register(formData);
 
-      if (result.success) {
+      if (!error && data) {
         showMessage(
           registerMessage,
           "Cuenta creada exitosamente. Puedes iniciar sesión ahora.",
           false
         );
 
-        // Clear form
         registerFormElement.reset();
-
-        // Switch to login form after a delay
-        setTimeout(() => {
-          registerForm.classList.add("hidden");
-          loginForm.classList.remove("hidden");
-          clearMessages();
-        }, 2000);
+        registerForm.classList.add("hidden");
+        loginForm.classList.remove("hidden");
+        clearMessages();
       } else {
-        const errorMessage = result.data.message || "Error al crear la cuenta";
+        const errorMessage = error?.message || "Error al crear la cuenta";
         showMessage(registerMessage, errorMessage, true);
       }
-    } catch (error) {
+    } catch (err) {
       showMessage(
         registerMessage,
         "Error inesperado. Inténtalo de nuevo.",
         true
       );
     } finally {
-      registerBtn.disabled = false;
       registerBtn.textContent = "Crear Cuenta";
+      registerBtn.disabled = false;
     }
   });
-
-  // Check if user is already logged in
-  function checkAuthStatus() {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      // Optional: Verify token with server
-      // For now, just redirect if token exists
-      // window.location.href = '/dashboard';
-    }
-  }
-
-  // Initialize
-  checkAuthStatus();
 </script>

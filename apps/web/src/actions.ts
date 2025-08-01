@@ -1,7 +1,6 @@
 import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro:schema";
-import { AuthLogin } from "./api/auth";
-import { SaveUser } from "./services/auth-service";
+import { AuthLogin, AuthRegister } from "./api/auth";
 
 export function getBaseUrl(): string {
     return (
@@ -16,6 +15,7 @@ export const server = {
         input: z.object({
             username: z.string(),
             password: z.string(),
+            'remember-me': z.boolean().optional(),
         }),
         handler: async (input, context) => {
 
@@ -26,7 +26,6 @@ export const server = {
 
             try {
                 const res = await response;
-                console.log({ res })
                 const data = await res.json();
 
                 if (!res.ok) {
@@ -37,35 +36,80 @@ export const server = {
                 }
 
                 if (data && data.token) {
-                    SaveUser(data.token);
-                    return {
-                        url: "/",
-                    };
+                    const maxAge = input['remember-me'] ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
+
+                    context.cookies.set('authToken', data.token, {
+                        httpOnly: true,
+                        secure: process.env.NODE_ENV === 'production',
+                        sameSite: 'strict',
+                        maxAge: maxAge,
+                        path: '/'
+                    });
                 }
 
-                throw new ActionError({
-                    code: "BAD_REQUEST",
-                    message: "Error desconocido durante el login",
-                });
+                return {
+                    success: true,
+                    user: data.user,
+                    message: "Inicio de sesión exitoso"
+                };
             } catch (error) {
                 console.error("Error during login:", error);
             }
         },
     }),
-    logout: defineAction({
+    register: defineAction({
         accept: "form",
-        handler: async (_, context) => {
+        input: z.object({
+            username: z.string(),
+            password: z.string(),
+            firstname: z.string(),
+            lastname: z.string(),
+        }),
+        handler: async (input, context) => {
+
+            const response = AuthRegister({
+                username: input.username,
+                password: input.password,
+                firstname: input.firstname,
+                lastname: input.lastname,
+            });
+
             try {
-                SaveUser("");
+                const res = await response;
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new ActionError({
+                        code: "BAD_REQUEST",
+                        message: data.message || "Error al registrar el usuario",
+                    });
+                }
+
                 return {
-                    ok: true,
+                    success: true,
+                    user: data.user,
+                    message: "Cuenta creada exitosamente"
                 };
-            } catch (error) {
+            }
+            catch (error) {
+                console.error("Error during registration:", error);
                 throw new ActionError({
-                    code: "BAD_REQUEST",
-                    message: "Error durante el logout",
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Error interno del servidor durante el registro",
                 });
             }
         },
     }),
-}
+    logout: defineAction({
+        accept: 'json',
+        handler: async (input, context) => {
+            context.cookies.delete('authToken', {
+                path: '/',
+            });
+
+            return {
+                success: true,
+                message: "Sesión cerrada exitosamente"
+            };
+        },
+    }),
+};

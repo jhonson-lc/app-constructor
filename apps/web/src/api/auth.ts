@@ -15,8 +15,6 @@ type AuthRegisterBody = {
 export const AuthLogin = async (body: AuthLoginBody) => {
     const url = `${BASEURL}/login`;
 
-    console.log('AuthLogin URL:', url, body)
-
     try {
         const response = await fetch(url, {
             method: "POST",

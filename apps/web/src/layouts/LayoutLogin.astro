@@ -1,5 +1,4 @@
 ---
-import Sidebar from "../components/Sidebar.astro";
 import "../styles/global.css";
 
 const { title, description } = Astro.props;
@@ -16,10 +15,7 @@ const { title, description } = Astro.props;
     <meta name="description" content={description} />
   </head>
   <body>
-    <section class="flex h-screen bg-gray-50">
-      <Sidebar />
-      <slot />
-    </section>
+    <slot />
   </body>
 </html>
 

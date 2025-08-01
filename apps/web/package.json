@@ -12,7 +12,11 @@
     "@astrojs/vercel": "^8.2.4",
     "@tailwindcss/vite": "^4.1.11",
     "astro": "^5.12.6",
+    "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "tailwindcss": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10"
   }
 }

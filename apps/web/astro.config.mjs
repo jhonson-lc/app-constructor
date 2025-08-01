@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 
 import tailwindcss from '@tailwindcss/vite';
 import vercel from "@astrojs/vercel";
@@ -11,5 +11,10 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
-  outDir: "./dist"
+  outDir: "./dist",
+  env:{
+    schema:{
+      JWT_SECRET: envField.string({context: "server", access: "secret"})
+    }
+  }
 });

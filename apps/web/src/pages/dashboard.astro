@@ -1,0 +1,248 @@
+---
+import { getAllTasks } from "../api/task";
+import Layout from "../layouts/Layout.astro";
+import type { TaskI } from "../types/task";
+import {
+  getPriorityColor,
+  getPriorityText,
+  getStatusColor,
+  getStatusText,
+} from "../utils/utils";
+
+const { user, isAuthenticated } = Astro.locals;
+
+if (!user || !isAuthenticated) {
+  return Astro.redirect("/auth/login");
+}
+
+const tokenId = Astro.cookies.get("authToken")?.value as string;
+
+const response = await getAllTasks(user.id, tokenId);
+const tasks: TaskI[] = await response.json();
+---
+
+<Layout title="Dashboard">
+  <div class="flex-1 overflow-hidden">
+    <div class="p-8">
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h2 class="text-3xl font-bold text-gray-900">Tareas</h2>
+          <p class="text-gray-600 mt-1">Gestiona y organiza tus tareas</p>
+        </div>
+
+        <button
+          id="create-task-btn"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span>Nueva Tarea</span>
+        </button>
+      </div>
+
+      {
+        tasks.length === 0 && (
+          <div class="text-center text-gray-500 border-dashed border-2 border-gray-200 rounded-lg p-8">
+            <p>No hay tareas disponibles.</p>
+          </div>
+        )
+      }
+
+      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {
+          tasks.map((task) => (
+            <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+              <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 line-clamp-2">
+                  {task.title}
+                </h3>
+                <div>
+                  <button
+                    id="edit-task-btn"
+                    class="text-gray-400 hover:text-gray-600 transition-colors"
+                    data-task-id={task.id}
+                    data-token-id={tokenId}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <>
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                        <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                        <path d="M16 5l3 3" />
+                      </>
+                    </svg>
+                  </button>
+                  <button
+                    id="delete-task-btn"
+                    class="text-gray-400 hover:text-red-500 transition-colors"
+                    data-task-id={task.id}
+                    data-token-id={tokenId}
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <p class="text-gray-600 text-sm mb-4 line-clamp-3">
+                {task.description}
+              </p>
+
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span
+                  class={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.important)}`}
+                >
+                  {getPriorityText(task.important)}
+                </span>
+                <span
+                  class={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.finished)}`}
+                >
+                  {getStatusText(task.finished)}
+                </span>
+              </div>
+
+              <div class="text-sm text-gray-500 mb-4">
+                <div class="flex items-center space-x-1 mb-1">
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span>
+                    Vence: {new Date(task.date).toLocaleDateString("es-ES")}
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex space-x-2">
+                {!task.finished && (
+                  <button
+                    id="complete-task-btn"
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm transition-colors"
+                    data-task-id={task.id}
+                    data-token-id={tokenId}
+                  >
+                    Completar
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { navigate } from "astro:transitions/client";
+  import { $ } from "../utils/dom-selector";
+  import { deleteTask, updateTaskCompleted } from "../api/task";
+
+  const createTaskBtn = $("#create-task-btn") as HTMLButtonElement;
+
+  createTaskBtn.addEventListener("click", () => {
+    navigate("/task/create");
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+
+    const editBtn = target.closest("#edit-task-btn") as HTMLButtonElement;
+    if (editBtn) {
+      const taskId = editBtn.dataset.taskId;
+      if (taskId) {
+        navigate(`/task/edit/${taskId}`);
+      }
+      return;
+    }
+
+    const completeBtn = target.closest(
+      "#complete-task-btn"
+    ) as HTMLButtonElement;
+    if (completeBtn) {
+      handleCompleteTask(completeBtn);
+      return;
+    }
+
+    const deleteBtn = target.closest("#delete-task-btn") as HTMLButtonElement;
+    if (deleteBtn) {
+      handleDeleteTask(deleteBtn);
+      return;
+    }
+  });
+
+  async function handleCompleteTask(button: HTMLButtonElement) {
+    const taskId = button.dataset.taskId as string;
+    const tokenId = button.dataset.tokenId as string;
+
+    try {
+      const response = await updateTaskCompleted(taskId, tokenId);
+      if (response.ok) {
+        navigate("/dashboard");
+      } else {
+        alert("Error al completar la tarea");
+      }
+    } catch (error) {
+      console.error("Error completing task:", error);
+      alert("Error al completar la tarea");
+    }
+  }
+
+  async function handleDeleteTask(button: HTMLButtonElement) {
+    if (confirm("¿Estás seguro de que quieres eliminar esta tarea?")) {
+      const taskId = button.dataset.taskId as string;
+      const tokenId = button.dataset.tokenId as string;
+
+      try {
+        const response = await deleteTask(taskId, tokenId);
+        if (response.ok) {
+          navigate("/dashboard");
+        } else {
+          alert("Error al eliminar la tarea");
+        }
+      } catch (error) {
+        console.error("Error deleting task:", error);
+        alert("Error al eliminar la tarea");
+      }
+    }
+  }
+</script>

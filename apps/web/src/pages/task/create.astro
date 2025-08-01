@@ -1,0 +1,157 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+const { user, isAuthenticated } = Astro.locals;
+
+if (!user || !isAuthenticated) {
+  return Astro.redirect("/auth/login");
+}
+
+const userId = user.id;
+const token = Astro.cookies.get("authToken")?.value;
+---
+
+<Layout title="Crear Tarea" description="Formulario para crear una nueva tarea">
+  <div class="w-full max-w-lg m-auto">
+    <div class="p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-900">Nueva Tarea</h3>
+        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form class="space-y-4" id="create-task-form">
+        <input type="hidden" name="userId" value={userId} />
+        <input type="hidden" name="token" value={token} />
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Título *</label
+          >
+          <input
+            name="title"
+            type="text"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+            placeholder="Ingresa el título de la tarea"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Descripción</label
+          >
+          <textarea
+            name="description"
+            rows={3}
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
+            placeholder="Describe la tarea..."></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >Prioridad</label
+            >
+            <select
+              name="important"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+            >
+              <option value="low">Baja</option>
+              <option value="high">Alta</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >Estado</label
+            >
+            <select
+              name="finished"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+            >
+              <option value="pending">Pendiente</option>
+              <option value="completed">Completada</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Fecha de vencimiento *</label
+          >
+          <input
+            type="date"
+            required
+            name="date"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+          />
+        </div>
+
+        <div class="flex space-x-3 pt-4">
+          <button
+            type="button"
+            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Crear Tarea
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { createTask } from "../../api/task";
+  import { $ } from "../../utils/dom-selector";
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const createTaskForm = $("#create-task-form") as HTMLFormElement;
+
+    createTaskForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(createTaskForm);
+      const taskData = Object.fromEntries(formData.entries());
+
+      const userId = taskData.userId as string;
+      const token = taskData.token as string;
+
+      try {
+        const response = await createTask(
+          {
+            title: taskData.title,
+            description: taskData.description,
+            important: taskData.important === "high",
+            finished: taskData.finished === "completed",
+            date: taskData.date,
+          },
+          userId,
+          token
+        );
+
+        if (response.ok) {
+          alert("Tarea creada exitosamente");
+          window.location.href = "/dashboard";
+        } else {
+          alert("Error al crear la tarea");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Ocurrió un error al crear la tarea");
+      }
+    });
+  });
+</script>

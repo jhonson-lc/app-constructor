@@ -1,0 +1,212 @@
+---
+import { getTaskById } from "../../../api/task";
+import Layout from "../../../layouts/Layout.astro";
+import type { TaskI } from "../../../types/task";
+
+const { user, isAuthenticated } = Astro.locals;
+const { id } = Astro.params;
+
+if (!user || !isAuthenticated) {
+  return Astro.redirect("/auth/login");
+}
+
+if (!id) {
+  return Astro.redirect("/dashboard");
+}
+
+const userId = user.id;
+const token = Astro.cookies.get("authToken")?.value;
+
+if (!token) {
+  return Astro.redirect("/auth/login");
+}
+
+let task: TaskI | null = null;
+try {
+  const response = await getTaskById(id, token);
+  if (response.ok) {
+    task = await response.json();
+  } else {
+    return Astro.redirect("/dashboard");
+  }
+} catch (error) {
+  console.error("Error fetching task:", error);
+  return Astro.redirect("/dashboard");
+}
+
+if (!task) {
+  return Astro.redirect("/dashboard");
+}
+---
+
+<Layout
+  title="Editar Tarea"
+  description="Formulario para editar una tarea existente"
+>
+  <div class="w-full max-w-lg m-auto">
+    <div class="p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-900">Editar Tarea</h3>
+        <button
+          id="close-btn"
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form class="space-y-4" id="edit-task-form">
+        <input type="hidden" name="taskId" value={task.id} />
+        <input type="hidden" name="userId" value={userId} />
+        <input type="hidden" name="token" value={token} />
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Título *
+          </label>
+          <input
+            name="title"
+            type="text"
+            required
+            value={task.title}
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+            placeholder="Ingresa el título de la tarea"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Descripción
+          </label>
+          <textarea
+            name="description"
+            rows={3}
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
+            placeholder="Describe la tarea...">{task.description}</textarea
+          >
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Prioridad
+            </label>
+            <select
+              name="important"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+            >
+              <option value="low" selected={!task.important}>Baja</option>
+              <option value="high" selected={task.important}>Alta</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Estado
+            </label>
+            <select
+              name="finished"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+            >
+              <option value="pending" selected={!task.finished}
+                >Pendiente</option
+              >
+              <option value="completed" selected={task.finished}
+                >Completada</option
+              >
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Fecha de vencimiento *
+          </label>
+          <input
+            type="date"
+            required
+            name="date"
+            value={new Date(task.date).toISOString().split("T")[0]}
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+          />
+        </div>
+
+        <div class="flex space-x-3 pt-4">
+          <button
+            type="button"
+            id="cancel-btn"
+            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Actualizar Tarea
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { navigate } from "astro:transitions/client";
+  import { $ } from "../../../utils/dom-selector";
+  import { updateTask } from "../../../api/task";
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const editTaskForm = $("#edit-task-form") as HTMLFormElement;
+    const cancelBtn = $("#cancel-btn") as HTMLButtonElement;
+    const closeBtn = $("#close-btn") as HTMLButtonElement;
+
+    editTaskForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(editTaskForm);
+      const taskData = Object.fromEntries(formData.entries());
+
+      const userId = taskData.userId as string;
+      const token = taskData.token as string;
+      const taskId = taskData.taskId as string;
+
+      const updatedTask = {
+        id: taskId,
+        title: taskData.title,
+        description: taskData.description,
+        important: taskData.important === "high",
+        finished: taskData.finished === "completed",
+        date: taskData.date,
+      };
+
+      try {
+        const response = await updateTask(updatedTask, userId, token);
+
+        if (response.ok) {
+          alert("Tarea actualizada exitosamente");
+          navigate("/dashboard");
+        } else {
+          alert("Error al actualizar la tarea");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Ocurrió un error al actualizar la tarea");
+      }
+    });
+
+    cancelBtn.addEventListener("click", () => {
+      navigate("/dashboard");
+    });
+
+    closeBtn.addEventListener("click", () => {
+      navigate("/dashboard");
+    });
+  });
+</script>
