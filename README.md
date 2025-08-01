@@ -47,6 +47,8 @@
 
 ## Configuración
 
+Debes configurar las variables de entorno para el backend en un archivo `application.properties` dentro de `apps/backend/src/main/resources/`.
+
 ``` 
 spring.datasource.url=jdbc:postgresql://{DB_HOSTNAME}/{DB_NAME}
 spring.datasource.username={DB_USER}
