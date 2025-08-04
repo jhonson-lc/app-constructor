@@ -47,8 +47,6 @@ public class SecurityConfig {
             registry.addMapping("/**")
                     .allowedOrigins(
                         "http://localhost:4321",
-                        "https://taskmanager-u3h3.onrender.com",
-                        "https://taskmanager.alejoczombos.com.ar"
                     )
                     .allowedMethods("GET", "POST", "PUT", "DELETE");
             }

@@ -11,9 +11,6 @@ import io.swagger.v3.oas.annotations.servers.Server;
 @OpenAPIDefinition(
         info = @Info(
                 contact = @Contact(
-                        name = "Alejo Czombos",
-                        email = "alejoczombos@gmail.com",
-                        url = "https://github.com/AlejoCzombos"
                 ),
                 title = "Task Manager API",
                 description = "API para la gestión de tareas de un usuario con autenticación JWT.",
