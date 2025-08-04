@@ -10,8 +10,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
 
 @OpenAPIDefinition(
         info = @Info(
-                contact = @Contact(
-                ),
+                // contact = @Contact(),
                 title = "Task Manager API",
                 description = "API para la gestión de tareas de un usuario con autenticación JWT.",
                 version = "1.0"
